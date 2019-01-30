@@ -81,12 +81,12 @@ public class Client {
 		boolean resultat;
 
 		if(connexionFile.exists() && connexionFile.length() > 0){
-			System.out.println("Fichier non vide");
+			//System.out.println("Fichier non vide");
 			resultat = Boolean.TRUE;
 		}
 
 		else{
-			System.out.println("Fichier vide ou non existant");
+			//System.out.println("Fichier vide ou non existant");
 			resultat = Boolean.FALSE;
 		}
 
@@ -99,10 +99,19 @@ public class Client {
 		//vérifier l'existence des arguments aussi....
 		if(args[0].equals("connect")){
 			if(args.length == 3){
-				String currentDirectory = Paths.get("").toAbsolutePath().toString();
-				//byte[] sessionID = distantServerStub.openSession(args[1], args[2]);
-				Path filePath = Paths.get(currentDirectory + "/connect.sess");
-				Files.write(filePath, "bonjour\n".getBytes());
+
+				byte[] sessionId = distantServerStub.openSession(args[1], args[2]);
+
+				// si sessionId est null, on dit que le login ou le mdp est faux
+				if(sessionId != null){
+					String currentDirectory = Paths.get("").toAbsolutePath().toString();
+					Path filePath = Paths.get(currentDirectory + "/connect.sess");
+					Files.write(filePath, sessionId);
+				}
+				else{
+					System.out.println("Login ou mot de passe incorrect !");
+				}
+
 
 			}
 			else{
@@ -122,7 +131,7 @@ public class Client {
 		//byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
 		byte[] newContent = null;
 		if (newContent != null){
-			groupList.setContent(newContent);
+			groupList.writeContent(newContent);
 			System.out.println("Le fichier de groupe de liste a été mis a jour !");
 		}
 		else{
@@ -137,6 +146,10 @@ public class Client {
 		}
 		else{
 			switch(args[0]){
+				case("connect"):
+					System.out.println("Vous êtes déjà connecté !");
+					break;
+
 				case("get"):
 					System.out.println("On veut la liste des groupes");
 					if(args.length >= 1){
@@ -176,7 +189,7 @@ public class Client {
 					break;
 
 				default:
-					System.out.println("Saisissez un argument valide !!");
+					System.out.println("Saisissez une commande valide !!");
 					break;
 			}
 		}

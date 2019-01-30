@@ -19,6 +19,18 @@ public class Fichier {
 
     public Fichier(String name) throws java.io.IOException {
         this(name, null);
+
+        byte[] b = null;
+
+        try{
+            Path filePath = Paths.get(Paths.get("").toAbsolutePath().toString() + '/' + name);
+            b = Files.readAllBytes(filePath);
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+        this.setContent(b);
+
     }
 
     public Fichier(String name, byte[] content) throws java.io.IOException {
@@ -45,7 +57,7 @@ public class Fichier {
         this.writeContent(content);
     }
 
-    private void writeContent(byte[] content) throws java.io.IOException {
+    public void writeContent(byte[] content) throws java.io.IOException {
         try {
             Path filePath = Paths.get(Paths.get("").toAbsolutePath().toString() + '/' + fileName);
             Files.write(filePath, content);
