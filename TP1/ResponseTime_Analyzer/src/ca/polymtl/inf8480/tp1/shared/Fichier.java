@@ -14,7 +14,7 @@ public class Fichier {
 
     private String fileName;
     private byte[] content;
-    private byte[] lockBy;
+    private boolean lock;
     private byte[] checksum;
 
     public Fichier(String name) throws java.io.IOException {
@@ -36,7 +36,7 @@ public class Fichier {
     public Fichier(String name, byte[] content) throws java.io.IOException {
         this.fileName = name;
         this.content = content;
-        this.lockBy = null;
+        this.lock = Boolean.FALSE;
         this.setChecksum();
     }
 
@@ -66,16 +66,16 @@ public class Fichier {
         }
     }
 
-    public byte[] getLockBy() {
-        return lockBy;
+    public boolean getLock() {
+        return lock;
     }
 
-    public void setLockBy(byte[] lockBy) {
-        this.lockBy = lockBy;
+    public void setLock() {
+        this.lock = Boolean.TRUE;
     }
 
     public void unlock(){
-        this.lockBy = null;
+        this.lock = Boolean.FALSE;
     }
 
     public byte[] getChecksum() {
@@ -105,7 +105,7 @@ public class Fichier {
         return "Fichier {" +
                 "nom='" + fileName + '\'' +
                 ", contenu=" + java.util.Arrays.toString(content) +
-                ", lockBy=" + java.util.Arrays.toString(lockBy) +
+                ", lockBy=" + java.lang.Boolean.toString(lock) +
                 "}";
     }
 }

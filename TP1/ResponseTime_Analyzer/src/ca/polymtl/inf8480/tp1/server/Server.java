@@ -13,13 +13,16 @@ import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
 
-	public static void main(String[] args) {
+	private Fichier groupList;
+
+	public static void main(String[] args) throws java.io.IOException {
 		Server server = new Server();
 		server.run();
 	}
 
-	public Server() {
+	public Server() throws java.io.IOException {
 		super();
+		Fichier groupList = new Fichier("server_files/group_list.txt");
 	}
 
 	private void run() {
@@ -79,11 +82,59 @@ public class Server implements ServerInterface {
 				if(id[0].equals(login) && id[1].equals(password)){
 					verified = Boolean.TRUE;
 					sessionId = generateId();
+					// ajouter l'id dans un ArrayMap et crée un ClientInterface
 				}
 				i++;
 			}
 
 			return sessionId;
+
+	}
+
+	public byte[] getGroupList(byte[] checksum) throws java.io.IOException {
+
+		byte[] content = null;
+
+		if(!checksum.equals(groupList.getChecksum())){
+			content = groupList.getContent();
+		}
+
+		return content;
+
+	}
+
+
+	public int lockGroupList(){
+
+		int result = 0;
+
+		if(!groupList.getLock()){
+			groupList.setLock();
+			result = 1;
+			// lancer un temporisateur...
+
+		}
+
+		return result;
+	}
+
+
+	public boolean pushGroupList(byte[] content) throws java.io.IOException {
+
+		boolean result = Boolean.FALSE;
+
+		if(groupList.getLock()){
+			groupList.setContent(content);
+			result = Boolean.TRUE;
+			groupList.unlock();
+		}
+
+		return result;
+	}
+
+	public void send(String subject, String dest, byte[] content){
+		//id = client.getId()
+		// name = clients[id]
 
 	}
 

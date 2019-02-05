@@ -33,6 +33,7 @@ public class Client {
 	FakeServer localServer = null;
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
+	// byte[] id;
 ;
 
 	public Client() {
@@ -124,12 +125,11 @@ public class Client {
 	}
 
 
-	private void getGroupList(String fileName) throws java.io.IOException {
+	private void updateGroupList() throws java.io.IOException {
 
-		Fichier groupList = new Fichier(fileName);
+		Fichier groupList = new Fichier("client_files/group_list.txt");
 
-		//byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
-		byte[] newContent = null;
+		byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
 		if (newContent != null){
 			groupList.writeContent(newContent);
 			System.out.println("Le fichier de groupe de liste a été mis a jour !");
@@ -137,6 +137,39 @@ public class Client {
 		else{
 			System.out.println("Le fichier de groupe de liste est déja a jour !");
 		}
+	}
+
+
+	private void lockGroupListClient(){
+		int result = distantServerStub.lockGroupList();
+
+		if (result == 1){
+			System.out.println("La liste des groupes a bien été vérouillée !");
+		}
+		else{
+			System.out.println("La liste des groupes est déjà vérouillée par un autre utiliateur !");
+		}
+	}
+
+	private void publish() throws java.io.IOException {
+
+		Fichier groupList = new Fichier("client_files/group_list.txt");
+		byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
+
+		if(newContent != null){
+			boolean modified = distantServerStub.pushGroupList(groupList.getContent());
+
+			if(modified){
+				System.out.println("La liste des groupes a bien été modifiée sur le serveur !");
+			}
+			else{
+				System.out.println("Vous devez vérouiller la liste globale !");
+			}
+		}
+		else{
+			System.out.println("La liste du groupe du serveur est déjà identique à la votre !");
+		}
+
 	}
 
 
@@ -150,22 +183,19 @@ public class Client {
 					System.out.println("Vous êtes déjà connecté !");
 					break;
 
-				case("get"):
+				case("get-group-list"):
 					System.out.println("On veut la liste des groupes");
-					if(args.length >= 1){
-						getGroupList(args[1]);
-					}
-					else{
-						System.out.println("Précisez un nom de fichier pour vérifier que votre liste de groupe est a jour");
-					}
+					updateGroupList();
 					break;
 
-				case("push"):
+				case("publish-group-list"):
 					System.out.println("On push la liste des groupes locales");
+					publish();
 					break;
 
-				case("lock"):
+				case("lock-group-list"):
 					System.out.println("On lock le fichier de groupes du serveur pour le modifier");
+					lockGroupListClient();
 					break;
 
 				case("send"):
