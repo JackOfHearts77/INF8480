@@ -10,12 +10,14 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+
+import ca.polymtl.inf8480.tp1.shared.ClientInterface;
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
 
-public class Client {
+public class Client implements ClientInterface {
 	public static void main(String[] args) throws java.io.IOException {
 
 		Client client = new Client();
@@ -33,8 +35,8 @@ public class Client {
 	FakeServer localServer = null;
 	private ServerInterface localServerStub = null;
 	private ServerInterface distantServerStub = null;
-	// byte[] id;
-;
+
+
 
 	public Client() {
 		super();
@@ -47,7 +49,6 @@ public class Client {
 		localServerStub = loadServerStub("127.0.0.1");
 		//distantServerStub = loadServerStub("132.207.89.183");
 		distantServerStub = loadServerStub("127.0.0.1");
-
 
 
 	}
@@ -70,11 +71,13 @@ public class Client {
 		return stub;
 	}
 
+
+
 	/*
-		On vérifie que le fichier connect.sess existe et est non vide.
-		Ceci signifie que le client est connecté.
-		Son identifiant de session se trouve dans le fichier.
-	 */
+            On vérifie que le fichier connect.sess existe et est non vide.
+            Ceci signifie que le client est connecté.
+            Son identifiant de session se trouve dans le fichier.
+         */
 	private boolean verify(){
 		String filePath = Paths.get("").toAbsolutePath().toString() + "/connect.sess";
 		File connexionFile = new File(filePath);

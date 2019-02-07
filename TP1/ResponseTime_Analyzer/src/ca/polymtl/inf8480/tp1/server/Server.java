@@ -14,6 +14,7 @@ import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 public class Server implements ServerInterface {
 
 	private Fichier groupList;
+	//private ClientInterface clientStub = null;
 
 	public static void main(String[] args) throws java.io.IOException {
 		Server server = new Server();
@@ -135,7 +136,6 @@ public class Server implements ServerInterface {
 	public void send(String subject, String dest, byte[] content){
 		//id = client.getId()
 		// name = clients[id]
-
 	}
 
 }

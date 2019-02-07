@@ -10,7 +10,7 @@ public interface ServerInterface extends Remote {
 	byte[] getGroupList(byte[] checksum) throws java.io.IOException;
 	boolean pushGroupList(byte[] list) throws java.io.IOException;
 	int lockGroupList();
-	//int sendMail(String subject, String dest, byte[] content);
+	void send(String subject, String dest, byte[] content);
 
 
 }
