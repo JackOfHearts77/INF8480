@@ -14,11 +14,15 @@ import java.rmi.registry.Registry;
 import ca.polymtl.inf8480.tp1.shared.ClientInterface;
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
+import ca.polymtl.inf8480.tp1.shared.Group;
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
-import org.w3c.dom.ranges.RangeException;
+import com.google.gson.Gson;
+import com.google.gson.*;
 
 
 public class Client implements ClientInterface {
+
+
 	public static void main(String[] args) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 
 		Client client = new Client();
@@ -173,6 +177,23 @@ public class Client implements ClientInterface {
 	}
 
 
+	private void join(String groupName, String userName) throws java.io.IOException {
+
+		//on load groupList
+		//on vérifie que groupName existe
+		// s'il existe on ajoute userName
+		// sinon on crée le groupe et on ajoute userName
+		Fichier groupList = new Fichier("client_files/group_list.txt");
+
+		GsonBuilder builder = new GsonBuilder();
+		Gson gson = builder.create();
+		String resultat = gson.toJson(new Group(groupName, userName));
+		System.out.println(resultat);
+
+
+	}
+
+
 	private void handleArgs(String args[]) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 		if(args.length ==0){
 			System.out.println("Saisissez un argument");
@@ -197,6 +218,15 @@ public class Client implements ClientInterface {
 					System.out.println("On lock le fichier de groupes du serveur pour le modifier");
 					lockGroupListClient();
 					break;
+
+				case("join-group"):
+					System.out.println("Ajout d'un utilisateur au groupe");
+					if(args.length == 4 && args[2].equals("-u")){
+						join(args[1], args[3]);
+					}
+					else{
+						System.out.println("Spécifier le nombre correct d'argument: join-group #groupName -u #userName");
+					}
 
 				case("send"):
 					System.out.println("Envoi d'un mail");
