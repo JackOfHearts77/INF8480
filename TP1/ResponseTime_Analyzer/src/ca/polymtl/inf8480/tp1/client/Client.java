@@ -15,10 +15,11 @@ import ca.polymtl.inf8480.tp1.shared.ClientInterface;
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
+import org.w3c.dom.ranges.RangeException;
 
 
 public class Client implements ClientInterface {
-	public static void main(String[] args) throws java.io.IOException {
+	public static void main(String[] args) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 
 		Client client = new Client();
 		boolean connected = client.verify();
@@ -79,7 +80,7 @@ public class Client implements ClientInterface {
             Son identifiant de session se trouve dans le fichier.
          */
 	private boolean verify(){
-		String filePath = Paths.get("").toAbsolutePath().toString() + "/connect.sess";
+		String filePath = Paths.get("").toAbsolutePath().toString() + "/client_files/connect.sess";
 		File connexionFile = new File(filePath);
 
 		boolean resultat;
@@ -99,7 +100,7 @@ public class Client implements ClientInterface {
 	}
 
 
-	private void handleConnexion(String args[]) throws java.io.IOException {
+	private void handleConnexion(String args[]) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 		//vérifier l'existence des arguments aussi....
 		if(args[0].equals("connect")){
 			if(args.length == 3){
@@ -109,8 +110,9 @@ public class Client implements ClientInterface {
 				// si sessionId est null, on dit que le login ou le mdp est faux
 				if(sessionId != null){
 					String currentDirectory = Paths.get("").toAbsolutePath().toString();
-					Path filePath = Paths.get(currentDirectory + "/connect.sess");
+					Path filePath = Paths.get(currentDirectory + "/client_files/connect.sess");
 					Files.write(filePath, sessionId);
+					System.out.println("Bienvenue " + args[1] + " !");
 				}
 				else{
 					System.out.println("Login ou mot de passe incorrect !");
@@ -133,6 +135,7 @@ public class Client implements ClientInterface {
 		Fichier groupList = new Fichier("client_files/group_list.txt");
 
 		byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
+
 		if (newContent != null){
 			groupList.writeContent(newContent);
 			System.out.println("Le fichier de groupe de liste a été mis a jour !");
@@ -143,7 +146,7 @@ public class Client implements ClientInterface {
 	}
 
 
-	private void lockGroupListClient(){
+	private void lockGroupListClient() throws RemoteException, java.rmi.server.ServerNotActiveException {
 		int result = distantServerStub.lockGroupList();
 
 		if (result == 1){
@@ -154,29 +157,23 @@ public class Client implements ClientInterface {
 		}
 	}
 
-	private void publish() throws java.io.IOException {
+	private void publish() throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 
 		Fichier groupList = new Fichier("client_files/group_list.txt");
 		byte[] newContent = distantServerStub.getGroupList(groupList.getChecksum());
+		boolean result = distantServerStub.pushGroupList(groupList.getContent());
 
-		if(newContent != null){
-			boolean modified = distantServerStub.pushGroupList(groupList.getContent());
-
-			if(modified){
-				System.out.println("La liste des groupes a bien été modifiée sur le serveur !");
-			}
-			else{
-				System.out.println("Vous devez vérouiller la liste globale !");
-			}
+		if(result){
+			System.out.println("La liste des groupes a bien été modifiée sur le serveur !");
 		}
 		else{
-			System.out.println("La liste du groupe du serveur est déjà identique à la votre !");
+			System.out.println("Le fichier est déjà vérouillé par un autre client ou vous n'avez pas vérouillé le fichier au préalable!");
 		}
 
 	}
 
 
-	private void handleArgs(String args[]) throws java.io.IOException {
+	private void handleArgs(String args[]) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 		if(args.length ==0){
 			System.out.println("Saisissez un argument");
 		}
@@ -203,6 +200,7 @@ public class Client implements ClientInterface {
 
 				case("send"):
 					System.out.println("Envoi d'un mail");
+					distantServerStub.send();
 					break;
 
 				case("list"):
@@ -223,6 +221,7 @@ public class Client implements ClientInterface {
 
 				default:
 					System.out.println("Saisissez une commande valide !!");
+					// Ajouter un helper si possible
 					break;
 			}
 		}

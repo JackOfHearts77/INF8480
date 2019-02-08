@@ -4,8 +4,11 @@ import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
 import java.util.UUID;
+import java.util.Vector;
 
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
@@ -13,8 +16,10 @@ import ca.polymtl.inf8480.tp1.shared.ServerInterface;
 
 public class Server implements ServerInterface {
 
-	private Fichier groupList;
-	//private ClientInterface clientStub = null;
+	public Fichier groupList;
+	private HashMap<String, String> client_logins;
+	private HashMap<String, byte[]> client_ids;
+
 
 	public static void main(String[] args) throws java.io.IOException {
 		Server server = new Server();
@@ -23,7 +28,10 @@ public class Server implements ServerInterface {
 
 	public Server() throws java.io.IOException {
 		super();
-		Fichier groupList = new Fichier("server_files/group_list.txt");
+		groupList = new Fichier("server_files/group_list.txt");
+		client_logins = new HashMap();
+		client_ids = new HashMap();
+
 	}
 
 	private void run() {
@@ -70,72 +78,85 @@ public class Server implements ServerInterface {
 		return uniqueID.getBytes();
 	}
 
-	public byte[] openSession(String login, String password) throws java.io.IOException {
-			Fichier users = new Fichier("server_files/users_list.txt");
+	public byte[] openSession(String login, String password) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
+		Fichier users = new Fichier("server_files/users_list.txt");
 
-			String[] ids = (new String(users.getContent())).toString().split("\n");
-			byte[] sessionId = null;
-			int i = 0;
-			boolean verified = Boolean.FALSE;
+		String[] ids = (new String(users.getContent())).toString().split("\n");
+		byte[] sessionId = null;
+		int i = 0;
+		boolean verified = Boolean.FALSE;
 
-			while(i < ids.length && !verified){
-				String[] id = ids[i].split(" ");
-				if(id[0].equals(login) && id[1].equals(password)){
-					verified = Boolean.TRUE;
-					sessionId = generateId();
-					// ajouter l'id dans un ArrayMap et crée un ClientInterface
-				}
-				i++;
+		while(i < ids.length && !verified){
+			String[] id = ids[i].split(" ");
+			if(id[0].equals(login) && id[1].equals(password)){
+				verified = Boolean.TRUE;
+				sessionId = generateId();
+				client_logins.put(RemoteServer.getClientHost(), login);
+				client_ids.put(RemoteServer.getClientHost(), sessionId);
 			}
+			i++;
+		}
 
-			return sessionId;
+		return sessionId;
 
 	}
 
 	public byte[] getGroupList(byte[] checksum) throws java.io.IOException {
 
+		//*
 		byte[] content = null;
 
+		//*
 		if(!checksum.equals(groupList.getChecksum())){
 			content = groupList.getContent();
 		}
 
 		return content;
-
+		//*/
 	}
 
 
-	public int lockGroupList(){
+	public int lockGroupList() throws java.rmi.server.ServerNotActiveException {
 
 		int result = 0;
+		String host = RemoteServer.getClientHost();
+		//*
+		if(client_ids.containsKey(host)){
+			byte[] id = client_ids.get(host);
+			if(groupList.getLock() == null){
+				groupList.setLock(id);
+				result = 1;
+				// lancer un temporisateur...
 
-		if(!groupList.getLock()){
-			groupList.setLock();
-			result = 1;
-			// lancer un temporisateur...
-
+			}
 		}
+	//*/
 
 		return result;
 	}
 
 
-	public boolean pushGroupList(byte[] content) throws java.io.IOException {
+	public boolean pushGroupList(byte[] content) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 
 		boolean result = Boolean.FALSE;
+		String host = RemoteServer.getClientHost();
 
-		if(groupList.getLock()){
+		//*
+		byte[] id = client_ids.get(host);
+		if(groupList.getLock().equals(id)){
 			groupList.setContent(content);
 			result = Boolean.TRUE;
 			groupList.unlock();
 		}
+		//*/
 
 		return result;
 	}
 
-	public void send(String subject, String dest, byte[] content){
+	public void send() throws java.rmi.server.ServerNotActiveException {
 		//id = client.getId()
 		// name = clients[id]
+		System.out.println(RemoteServer.getClientHost());
 	}
 
 }
