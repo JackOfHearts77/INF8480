@@ -6,13 +6,16 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.RemoteServer;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.Vector;
 
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
+import ca.polymtl.inf8480.tp1.shared.Mail;
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class Server implements ServerInterface {
 
@@ -153,10 +156,26 @@ public class Server implements ServerInterface {
 		return result;
 	}
 
-	public void send() throws java.rmi.server.ServerNotActiveException {
-		//id = client.getId()
-		// name = clients[id]
-		System.out.println(RemoteServer.getClientHost());
-	}
+	/*
+	public boolean send(String subject, String address, byte[] content) throws java.rmi.server.ServerNotActiveException, java.io.IOException {
+		boolean result = Boolean.FALSE;
+		String host = RemoteServer.getClientHost();
+		//*
+		if(client_logins.containsKey(host)){
+			String from = client_logins.get(host);
+			Mail mail = new Mail(subject, from + "@polymtl.ca", Boolean.FALSE, new Date(), content);
+			Gson gson = new GsonBuilder().create();
+			//String formatMail = gson.toJson(mail);
+			//System.out.println(formatMail);
+			//Fichier mailFile = new Fichier("server_files/" + address.split("@")[0] +".json");
 
+			//byte[] newContent = (new String(mailFile.getContent()) + formatMail).getBytes();
+			//mailFile.writeContent(newContent);
+			//result = Boolean.TRUE;
+		}
+
+
+		return result;
+	}
+	//*/
 }

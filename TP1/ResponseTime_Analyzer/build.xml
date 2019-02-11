@@ -3,6 +3,9 @@
 	<property name="debuglevel" value="source,lines,vars" />
 	<path id="TP1.classpath">
 		<pathelement location="bin" />
+		<fileset dir="lib">
+			<include name="**/*.jar"/>
+		</fileset>
 	</path>
 	<target name="init">
 		<mkdir dir="bin" />

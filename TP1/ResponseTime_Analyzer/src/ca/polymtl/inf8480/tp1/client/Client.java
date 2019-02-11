@@ -1,7 +1,6 @@
 package ca.polymtl.inf8480.tp1.client;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,10 +13,9 @@ import java.rmi.registry.Registry;
 import ca.polymtl.inf8480.tp1.shared.ClientInterface;
 import ca.polymtl.inf8480.tp1.shared.Fichier;
 
-import ca.polymtl.inf8480.tp1.shared.Group;
 import ca.polymtl.inf8480.tp1.shared.ServerInterface;
-import com.google.gson.Gson;
-import com.google.gson.*;
+
+
 
 
 public class Client implements ClientInterface {
@@ -183,16 +181,102 @@ public class Client implements ClientInterface {
 		//on vérifie que groupName existe
 		// s'il existe on ajoute userName
 		// sinon on crée le groupe et on ajoute userName
+
+		//*
 		Fichier groupList = new Fichier("client_files/group_list.txt");
 
-		GsonBuilder builder = new GsonBuilder();
-		Gson gson = builder.create();
-		String resultat = gson.toJson(new Group(groupName, userName));
-		System.out.println(resultat);
 
+		String content = (new String(groupList.getContent())).toString();
+		String[] groups = content.split("\n");
+		int i = 0;
+		boolean existing_group = Boolean.FALSE;
+
+		while(i < groups.length && !existing_group){
+
+			String[] infos = groups[i].split(" ", 2);
+
+			if(infos[0].equals(groupName)){
+				existing_group = Boolean.TRUE;
+
+
+				if(infos.length > 1){
+					// vérifier que le nom n'est pas dans le reste, si ce n'est pas le cas on ajoute, sinon on annonce qu'il est déjà)
+					String[] users = infos[1].split(" ");
+					int j = 0;
+					while(j < users.length && !users[j].equals(userName)){
+						j++;
+					}
+
+					// userName n'existe pas donc on l'ajoute
+					if(j == users.length){
+						groups[i] = groups[i].concat(" " + userName);
+						byte[] new_content = String.join("\n", groups).getBytes();
+						groupList.writeContent(new_content);
+						System.out.println("L'utilisateur " + userName + " a été ajouté au groupe " + groupName + " !");
+					}
+					else{
+						System.out.println("L'utilisateur " + userName + " existe déjà dans le groupe " + groupName + " !");
+					}
+				}
+				else{
+					groups[i] = groups[i].concat(" " + userName);
+					byte[] new_content = String.join("\n", groups).getBytes();
+					groupList.writeContent(new_content);
+					System.out.println("L'utilisateur " + userName + " a été ajouté au groupe " + groupName + " !");
+				}
+
+
+			}
+
+			i++;
+		}
+
+		// le groupe n'existe pas donc on le crée
+		if(!existing_group){
+			String new_group = groupName + " " + userName;
+			byte[] new_content = String.join("\n", groups).concat("\n" + new_group).getBytes();
+			groupList.writeContent(new_content);
+			System.out.println("Le groupe " + groupName + " a été créé et l'utilisateur " + userName + " y a été ajouté !");
+ 		}
+		//*/
+	}
+
+
+	public void create(String groupName) throws java.io.IOException {
+
+		Fichier groupList = new Fichier("client_files/group_list.txt");
+
+
+		String content = (new String(groupList.getContent())).toString();
+		String[] groups = content.split("\n");
+		int i = 0;
+		boolean existing_group = Boolean.FALSE;
+
+		while(i < groups.length && !existing_group){
+
+			String[] infos = groups[i].split(" ", 2);
+			if(infos[0].equals(groupName)){
+				existing_group = Boolean.TRUE;
+				System.out.println("Le groupe " + groupName + " existe déjà !");
+			}
+			i++;
+		}
+
+		if(!existing_group){
+			byte[] new_content = String.join("\n", groups).concat("\n" + groupName).getBytes();
+			groupList.writeContent(new_content);
+			System.out.println("Le groupe " + groupName + " a été créé !");
+		}
 
 	}
 
+	/*
+	public void sendMail(String subject, String address, byte[] content) throws java.rmi.server.ServerNotActiveException, java.io.IOException {
+		if(distantServerStub.send(subject, address, content)){
+			System.out.println("Courriel envoyé avec succès à " + address + " !");
+		}
+	}
+	//*/
 
 	private void handleArgs(String args[]) throws java.io.IOException, java.rmi.server.ServerNotActiveException {
 		if(args.length ==0){
@@ -227,10 +311,28 @@ public class Client implements ClientInterface {
 					else{
 						System.out.println("Spécifier le nombre correct d'argument: join-group #groupName -u #userName");
 					}
+					break;
+
+				case("create-group"):
+					System.out.println("Création d'un groupe...");
+
+					if(args.length == 2){
+						create(args[1]);
+					}
+					else{
+						System.out.println("Spécifier le nombre correct d'argument: create-group #groupName");
+					}
+
+					break;
 
 				case("send"):
 					System.out.println("Envoi d'un mail");
-					distantServerStub.send();
+					if(args.length >= 5 && args[1].equals("-s")){
+						String[] content = new String[args.length-4];
+						System.arraycopy(args, 4, content,0, args.length -4);
+
+						//sendMail(args[2], args[3], String.join(" ", content).getBytes());
+					}
 					break;
 
 				case("list"):

@@ -1,1 +1,4 @@
-Bonjour je suis le fichier serveur
+admin john bob
+finance bob alice
+informatique eve
+maths alice

@@ -1,5 +1,7 @@
 package ca.polymtl.inf8480.tp1.shared;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -7,26 +9,25 @@ import java.util.Date;
  */
 public class Mail {
 
-    private String filename;
+
     private String subject;
     private String from;
     private boolean read;
     private Date sent_date;
+    private DateFormat dateFormat;
+    private byte[] content;
 
-    public Mail(String filename, String subject, String from, boolean read, Date sent_date){
-        this.filename = filename;
+    public Mail(String subject, String from, boolean read, Date sent_date, byte[] content){
         this.subject = subject;
         this.from = from;
         this.read = read;
         this.sent_date = sent_date;
+        this.dateFormat = new SimpleDateFormat("EEE MMM d yyyy HH:mm");
+        this.content = content;
     }
 
     public Date getSent_date() {
         return sent_date;
-    }
-
-    public String getFilename() {
-        return filename;
     }
 
     public String getFrom() {
@@ -39,10 +40,6 @@ public class Mail {
 
     public boolean isRead() {
         return read;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
     }
 
     public void setFrom(String from) {
