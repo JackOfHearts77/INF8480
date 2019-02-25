@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="TP2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/server.jar!/" />
+      <root url="jar://$PROJECT_DIR$/client.jar!/" />
+      <root url="jar://$PROJECT_DIR$/shared.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
