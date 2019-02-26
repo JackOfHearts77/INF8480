@@ -1,16 +1,12 @@
 package client;
 
-import java.rmi.AccessException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import shared.ServerInterface;
+import client.ProcessedOperations;
 
 public class Repartiteur {
 
@@ -27,14 +23,37 @@ public class Repartiteur {
 	private Queue<String> operationQueue;
 
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws java.rmi.RemoteException {
 		// on démarre un compteur de temps
 
 		Repartiteur rep = new Repartiteur();
 
 		// On regarde les arguments, il doit y en avoir au moins 1
 		// A partir du fichier donné en paramètre, on remplit la file d'opérations
+		// la file est une ArrayDeque
 
+
+		Queue<String> file = new ArrayDeque<>();
+		file.offer("Bonjour");
+		file.offer("java");
+		System.out.println(file.peek());
+
+
+		/*
+		CalculusServer server = new CalculusServer(1, "127.0.0.1");
+
+		System.out.println("Refus: " + server.refuseTask(3));
+		System.out.println("Refus: " + server.refuseTask(8));
+		System.out.println("Refus: " + server.refuseTask(13));
+		System.out.println("Refus: " + server.refuseTask(30));
+		System.out.println("Prime 21: " + server.processLine("prime 21"));
+		System.out.println("Pell 6: " + server.processLine("pell 6"));
+		ArrayList<String> ops = new ArrayList<>();
+		ops.add("prime 21");
+		ops.add("pell 6");
+		System.out.println("process des deux résultats précédent: " + server.processTask(ops));
+
+		//*/
 	}
 
 
@@ -50,10 +69,11 @@ public class Repartiteur {
 
 	private void processQueue(){
 
-		//tant que operationQueue n'est pas vide
+		// tant que la file d'opérations n'est pas vide, on la traite
+		while(!this.operationQueue.isEmpty()){
 			processOperations(operationQueue);
-			this.resultat = this.resultat % 4000;
-
+			this.resultat = this.resultat % 5000;
+		}
 	}
 
 
@@ -62,22 +82,63 @@ public class Repartiteur {
 		Queue<Future<ProcessedOperations>> futures = splitWork(opQ);
 
 		//tant que futures n'est pas vide
-			// f = futures.peek()
-			// si f est terminé on traite le résultat (panne, refus, faux résultat)
-				// si on a un bon résultat on l'ajoute
-				// sinon on ajoute les opérations de f à this.operationQueue
+		while(!futures.isEmpty()){
+			Future<ProcessedOperations> f = futures.poll();
 
+			// si la tâche est terminée alors on traite le résultat
+			if(f.isDone()){
+				try{
+					ProcessedOperations procOp = f.get();
+					int res = procOp.getResult();
+					// le serveur est en panne
+					if(res == -1){
+						// on remet les tâches dans la file et on supprime le serveur de la liste
+					}
+					// la tâche a été refusée
+					else if(res == -2){
+						// on remet les tâches dans la file
+					}
+					//
+					else{
+
+						if(this.secure){
+							this.resultat += res;
+						}
+						else{
+							// on verifie que le resultat est bon => demander a un serveur different de faire le calcul, et verifier que le resultat est identique
+							// s'il ne l'est pas, on remet les tâches dans la file
+						}
+
+					}
+				}
+				catch(InterruptedException e){
+
+				}
+				catch(ExecutionException e){
+
+				}
+
+
+			}
+
+			// sinon on remet la tâche à la fin de la file
+			else{
+				futures.offer(f);
+			}
+
+		}
 
 	}
 
 
 	public Queue<Future<ProcessedOperations>> splitWork(Queue<String> opQ){
 
-		Queue<Future<ProcessedOperations>> futures = new ArrayDeque();
+		Queue<Future<ProcessedOperations>> futures = new ArrayDeque<>();
 
 		int nbOpTotal = opQ.size();
 		int nbOpTraitees = 0;
 		int nbOpEnvoyees = 0;
+
 
 		// tant que nbOpTraitees < nbOpTotal:
 			// pour chaque serveur s de la liste:

@@ -8,6 +8,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Created by jelacs on 25/02/19.
@@ -51,23 +52,69 @@ public class CalculusServer {
     }
 
     // méthode qui permet de décider si on refuse la tâche ou non selon la formule de l'énoncé
-    private boolean refuseTask(){
-        return false;
+    private boolean refuseTask(int taskLength){
+
+        float refus = ((float) taskLength - this.getQ())/(5*this.getQ());
+
+        Random rnd = new Random();
+        float value = rnd.nextFloat();
+
+        if (value < refus){
+            return true;
+        }
+        else {
+            return false;
+        }
+
     }
 
     // permet de calculer le résultat de l'ensemble des opérations
     // on doit d'abord déterminer si la tâche est refusée ou si le serveur est en panne
     // on doit également prendre en compte si on renvoie un résultat correct ou non
-    public int processTask(ArrayList<String> tasks){
-        return 0;
+    public int processTask(ArrayList<String> tasks) throws java.rmi.RemoteException {
+
+        int result = 0;
+
+        if(!isWorking){
+            result = -1;
+        }
+
+        else if(tasks.size() > this.stub.getQ() && refuseTask(tasks.size())){
+            result = -2;
+        }
+
+        else{
+            for(String t : tasks){
+                result += processLine(t);
+            }
+        }
+
+        return result;
     }
 
     // on calcule le résultat pour une seule opération de la liste
-    public int processLine(String line){
-        return 0;
+    private int processLine(String task) throws java.rmi.RemoteException {
+
+        int result = 0;
+
+        //on split task: op et arg
+        // appel rmi sur op avec l'argument arg
+        String[] t = task.split(" ");
+
+        if(t[0].equals("pell")){
+            result = this.stub.pell(Integer.parseInt(t[1]));
+        }
+        else{
+            result = this.stub.prime(Integer.parseInt(t[1]));
+        }
+
+        return result;
     }
 
+
+
     public int getId(){
+
         return this.id;
     }
 

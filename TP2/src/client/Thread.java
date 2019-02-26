@@ -16,7 +16,7 @@ public class Thread implements Callable {
         this.server = server;
     }
 
-    public ProcessedOperations call(){
+    public ProcessedOperations call() throws java.rmi.RemoteException {
         return new ProcessedOperations(this.server.processTask(operations), server.getId(), operations);
     }
 
