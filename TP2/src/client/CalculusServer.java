@@ -109,6 +109,11 @@ public class CalculusServer {
             result = this.stub.prime(Integer.parseInt(t[1]));
         }
 
+        if(!this.stub.resultIsCorrect()){
+            Random rnd = new Random();
+            result =  rnd.nextInt();
+        }
+
         return result;
     }
 

@@ -92,7 +92,7 @@ public class Server implements ServerInterface {
 	}
 
 	// détermine selon la valeur de m, si la réponse envoyée par le serveur doit être malicieuse ou non
-	public boolean resultIsCorrect() {
+	public boolean resultIsCorrect() throws RemoteException{
 		Random rnd = new Random();
 		float value = rnd.nextFloat();
 

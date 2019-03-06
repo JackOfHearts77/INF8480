@@ -14,7 +14,7 @@ public class Repartiteur {
 	private int resultat;
 
 	// Mode du répartiteur
-	private boolean secure = true;
+	private boolean secure;
 
 	// Liste des serveurs disponibles
 	private ArrayList<CalculusServer> serverList;
@@ -134,7 +134,8 @@ public class Repartiteur {
 		// tant que la file d'opérations n'est pas vide, on la traite
 		while(!this.operationQueue.isEmpty()){
 			processOperations(operationQueue);
-			//this.resultat = this.resultat % 5000;
+			//System.out.println("résultat courant: " + this.resultat);
+			//System.out.println("file après appel: " + operationQueue.toString());
 		}
 	}
 
@@ -145,6 +146,7 @@ public class Repartiteur {
 
 		//tant que futures n'est pas vide
 		while(!futures.isEmpty()){
+
 			Future<ProcessedOperations> f = futures.poll();
 
 			// si la tâche est terminée alors on traite le résultat
@@ -171,7 +173,9 @@ public class Repartiteur {
 						}
 						else{
 							// on verifie que le resultat est bon => demander a un serveur different de faire le calcul, et verifier que le resultat est identique
-							if(verify(procOp.getOperations(), procOp.getResult(), procOp.getServerId())){
+							boolean goodResult = verify(procOp.getOperations(), procOp.getResult(), procOp.getServerId());
+							//System.out.println("Nombre d'opérations: " + procOp.getOperations().size() + "bon résultat: " + goodResult);
+							if(goodResult){
 								this.resultat += res;
 								this.resultat = this.resultat % 5000;
 							}
@@ -251,7 +255,7 @@ public class Repartiteur {
 			// On récupère les n premières opérations
 			ArrayList<String> n_ops = new ArrayList<>();
 
-			for(int j = 0; j < opQ.size(); j++){
+			for(int j = 0; j < n; j++){
 				n_ops.add(opQ.poll());
 			}
 
@@ -276,44 +280,47 @@ public class Repartiteur {
 	private boolean verify(ArrayList<String> ops, int res, int serverId){
 
 		// Si jamais la boucle dure trop longtemps c'est qu'il n'y a pas de serveur avec la bonne capacité
-		long begin = System.currentTimeMillis();
+		//long begin = System.currentTimeMillis();
+		//int max_wait = 10000;
 
 		//
-		boolean different = false;
+		boolean equal = false;
 
-		// on choisit un entier au hasard différent de serverId
-		int newId = serverId;
+		int newRes = -3;
 
-		int capacity = (int) Math.floor(1.5 * (float) this.serverList.get(newId).getQ());
+		while(newRes < 0 ){
+			int newId = serverId;
 
-		while((newId == serverId || ops.size() > capacity) && (System.currentTimeMillis() - begin < 60000)){
-			// on génère un entier entre 0 et le nombre de serveur (non inclus)
-			newId = (int) (Math.random() * this.serverList.size());
-			capacity = (int) Math.floor(1.5 * (float) this.serverList.get(newId).getQ());
-		}
 
-		if(System.currentTimeMillis() - begin < 60000){
-			return different;
-		}
-
-		// on envoie les opérations à ce serveur
-		ExecutorService executor = Executors.newFixedThreadPool(this.serverList.size());
-
-		Callable<ProcessedOperations> thread = new Thread(ops, this.serverList.get(newId));
-		Future<ProcessedOperations> f = executor.submit(thread);
-
-		try {
-			if (f.get().getResult() == res) {
-				different = true;
+			while(newId == serverId){
+				// on génère un entier entre 0 et le nombre de serveur (non inclus)
+				newId = (int) (Math.random() * this.serverList.size());
 			}
-		} catch (ExecutionException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+
+			int capacity = (int) Math.floor(1.5 * (float) this.serverList.get(newId).getQ());
+
+			if(ops.size() <= capacity){
+				ExecutorService executor = Executors.newFixedThreadPool(this.serverList.size());
+
+				Callable<ProcessedOperations> thread = new Thread(ops, this.serverList.get(newId));
+				Future<ProcessedOperations> f = executor.submit(thread);
+
+
+				try {
+					newRes = f.get().getResult();
+					if ( newRes == res) {
+						equal = true;
+					}
+				} catch (ExecutionException e) {
+					e.printStackTrace();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+
 		}
-
-
-		return different;
+		//System.out.println("nouveau résultat: " + newRes + " et vérification ok: " + equal);
+		return equal;
 	}
 
 }

@@ -8,4 +8,5 @@ public interface ServerInterface extends Remote {
 	float getM() throws RemoteException;
 	int pell(int x) throws RemoteException;
 	int prime(int x) throws RemoteException;
+	boolean resultIsCorrect() throws RemoteException;
 }
