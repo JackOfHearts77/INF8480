@@ -1,10 +1,10 @@
 package client;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.*;
 
 import client.ProcessedOperations;
 
@@ -23,21 +23,47 @@ public class Repartiteur {
 	private Queue<String> operationQueue;
 
 
-	public static void main(String[] args) throws java.rmi.RemoteException {
+	public static void main(String[] args) throws IOException {
 		// on démarre un compteur de temps
+		long begin_time = System.currentTimeMillis();
 
+		// On crée un répartiteur et on affiche ses caractéristiques
 		Repartiteur rep = new Repartiteur();
+		rep.toString();
 
-		// On regarde les arguments, il doit y en avoir au moins 1
-		// A partir du fichier donné en paramètre, on remplit la file d'opérations
-		// la file est une ArrayDeque
+		// On regarde les arguments, il doit y en avoir au moins 1 arguments
+		if(args.length > 0){
+
+			// on lit le fichier d'opérations et on ajoute chaque ligne dans la file
+			try {
+				File file = new File(Paths.get("").toAbsolutePath().toString() + "/fichiers/" + args[0]);
+				Scanner scan = new Scanner(file);
+
+				while(scan.hasNextLine()){
+					rep.operationQueue.offer(scan.nextLine());
+				}
+
+				scan.close();
+				rep.processQueue();
+
+			} catch(IOException e){
+				e.printStackTrace();
+			}
+
+		}
+
+		System.out.println("Résultat : " + (rep.resultat));
+		System.out.print("Temps execution: ");
+		System.out.println(System.currentTimeMillis() - begin_time + " ms");
+		System.exit(0);
 
 
-		Queue<String> file = new ArrayDeque<>();
-		file.offer("Bonjour");
-		file.offer("java");
-		System.out.println(file.peek());
-
+		/*
+		Queue<String> queue = new ArrayDeque<>();
+		queue.offer("Bonjour");
+		queue.offer("java");
+		System.out.println(queue.peek());
+		//*/
 
 		/*
 		CalculusServer server = new CalculusServer(1, "127.0.0.1");
@@ -59,11 +85,47 @@ public class Repartiteur {
 
 	public Repartiteur() {
 		this.resultat = 0;
+		this.operationQueue = new ArrayDeque<>();
+
 
 		// On récupère la liste des serveurs que l'on ajoute à serverList
+		this.serverList = new ArrayList<>();
+		try {
+			File file = new File(Paths.get("").toAbsolutePath().toString() +"/config.ini");
+			Scanner scan = new Scanner(file);
+			// la première ligne contient le mode
+			if(scan.hasNext()){
+				if(scan.nextLine().equals("true")){
+					this.secure = true;
+				}
+				else{
+					this.secure =false;
+				}
+			}
 
-		System.out.println("Mode secure: " + secure);
-		// On peut éventuellement afficher les informations sur tous les serveurs
+			// les autres lignes contiennent les adresses ip
+			int i = 0;
+			while (scan.hasNextLine()){
+				this.serverList.add(new CalculusServer(i, scan.nextLine()));
+				i++;
+			}
+			scan.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+
+	}
+
+	@Override
+	public String toString(){
+		String newLine = System.getProperty("line.separator");
+		String s = "*** mode "+ this.secure+ " ***" + newLine;
+		for(CalculusServer server : this.serverList){
+			s = s + server.toString() + newLine;
+		}
+
+		return s;
 	}
 
 
@@ -72,12 +134,12 @@ public class Repartiteur {
 		// tant que la file d'opérations n'est pas vide, on la traite
 		while(!this.operationQueue.isEmpty()){
 			processOperations(operationQueue);
-			this.resultat = this.resultat % 5000;
+			//this.resultat = this.resultat % 5000;
 		}
 	}
 
 
-	public void processOperations(Queue<String> opQ){
+	private void processOperations(Queue<String> opQ){
 
 		Queue<Future<ProcessedOperations>> futures = splitWork(opQ);
 
@@ -93,20 +155,30 @@ public class Repartiteur {
 					// le serveur est en panne
 					if(res == -1){
 						// on remet les tâches dans la file et on supprime le serveur de la liste
+						addToOperationQueue(procOp.getOperations());
+						removeServer(procOp.getServerId());
 					}
 					// la tâche a été refusée
 					else if(res == -2){
-						// on remet les tâches dans la file
+						addToOperationQueue((procOp.getOperations()));
 					}
 					//
 					else{
 
 						if(this.secure){
 							this.resultat += res;
+							this.resultat = this.resultat % 5000;
 						}
 						else{
 							// on verifie que le resultat est bon => demander a un serveur different de faire le calcul, et verifier que le resultat est identique
+							if(verify(procOp.getOperations(), procOp.getResult(), procOp.getServerId())){
+								this.resultat += res;
+								this.resultat = this.resultat % 5000;
+							}
 							// s'il ne l'est pas, on remet les tâches dans la file
+							else{
+								addToOperationQueue(procOp.getOperations());
+							}
 						}
 
 					}
@@ -130,27 +202,118 @@ public class Repartiteur {
 
 	}
 
+	private void addToOperationQueue(ArrayList<String> ops){
 
-	public Queue<Future<ProcessedOperations>> splitWork(Queue<String> opQ){
+		for(String op : ops){
+			this.operationQueue.offer(op);
+		}
+
+	}
+
+
+	private void removeServer(int id){
+		int i = 0;
+		boolean removed = false;
+
+		while(i < this.serverList.size() && !removed){
+			if(serverList.get(i).getId() == id){
+				serverList.remove(i);
+				removed = true;
+			}
+		}
+	}
+
+
+	// On découpe le travail de la façon suivante, on envoie un nombre n de tâches qui soit tel que le
+	// refus du serveur ne dépasse pas 10%
+
+	private Queue<Future<ProcessedOperations>> splitWork(Queue<String> opQ){
 
 		Queue<Future<ProcessedOperations>> futures = new ArrayDeque<>();
 
+		ExecutorService executor = Executors.newFixedThreadPool(this.serverList.size());
+
+
 		int nbOpTotal = opQ.size();
 		int nbOpTraitees = 0;
-		int nbOpEnvoyees = 0;
+		int i = 0;
 
 
 		// tant que nbOpTraitees < nbOpTotal:
-			// pour chaque serveur s de la liste:
-				// on calcule le nombre nbOpEnvoyees d'opérations à envoyer
-				// on envoie les nbOpEnvoyees premières opérations de opQ au serveur
-				nbOpTraitees += nbOpEnvoyees;
-				// on ajoute le resultat f d'execution dans futures
+		while(i < this.serverList.size() && nbOpTraitees < nbOpTotal){
 
+			CalculusServer s = this.serverList.get(i);
+
+
+			// on récupère le min entre le nombre d'opérations qui donne un taux de refus de 10% et le nombre d'opération restante
+			int n = Math.min((int) Math.floor(1.5 * (float) s.getQ()), nbOpTotal - nbOpTraitees);
+
+			// On récupère les n premières opérations
+			ArrayList<String> n_ops = new ArrayList<>();
+
+			for(int j = 0; j < opQ.size(); j++){
+				n_ops.add(opQ.poll());
+			}
+
+			// On lance le processus
+			Callable<ProcessedOperations> thread = new Thread(n_ops, s);
+			Future<ProcessedOperations> f = executor.submit(thread);
+
+			// on ajoute la tâche à la liste des tâches envoyées
+			futures.add(f);
+
+			// on met à jour le nombre d'opération traitées
+			nbOpTraitees += n;
+
+		}
 
 		return futures;
 
+	}
 
+
+
+	private boolean verify(ArrayList<String> ops, int res, int serverId){
+
+		// Si jamais la boucle dure trop longtemps c'est qu'il n'y a pas de serveur avec la bonne capacité
+		long begin = System.currentTimeMillis();
+
+		//
+		boolean different = false;
+
+		// on choisit un entier au hasard différent de serverId
+		int newId = serverId;
+
+		int capacity = (int) Math.floor(1.5 * (float) this.serverList.get(newId).getQ());
+
+		while((newId == serverId || ops.size() > capacity) && (System.currentTimeMillis() - begin < 60000)){
+			// on génère un entier entre 0 et le nombre de serveur (non inclus)
+			newId = (int) (Math.random() * this.serverList.size());
+			capacity = (int) Math.floor(1.5 * (float) this.serverList.get(newId).getQ());
+		}
+
+		if(System.currentTimeMillis() - begin < 60000){
+			return different;
+		}
+
+		// on envoie les opérations à ce serveur
+		ExecutorService executor = Executors.newFixedThreadPool(this.serverList.size());
+
+		Callable<ProcessedOperations> thread = new Thread(ops, this.serverList.get(newId));
+		Future<ProcessedOperations> f = executor.submit(thread);
+
+		try {
+			if (f.get().getResult() == res) {
+				different = true;
+			}
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+
+		return different;
 	}
 
 }

@@ -35,7 +35,7 @@ public class CalculusServer {
         ServerInterface stub = null;
 
         try {
-            Registry registry = LocateRegistry.getRegistry(hostname);
+            Registry registry = LocateRegistry.getRegistry(hostname, 5021);
             stub = (ServerInterface) registry.lookup("server");
             setQ(stub.getQ());
             setM(stub.getM());
@@ -86,6 +86,7 @@ public class CalculusServer {
         else{
             for(String t : tasks){
                 result += processLine(t);
+                result = result % 5000;
             }
         }
 
