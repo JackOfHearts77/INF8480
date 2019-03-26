@@ -1,0 +1,57 @@
+#
+# This is a hello world HOT template just defining a single compute
+# server.
+#
+heat_template_version: 2013-05-23
+
+description: >
+  Hello world HOT template that just defines a single server.
+  Contains just base features to verify base HOT support.
+
+parameters:
+  key_name:
+    type: string
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
+  flavor:
+    type: string
+    description: Flavor for the server to be created
+    default: 2048-10-1-1
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: xenial-server-cloudimg-amd64-disk1
+  network:
+    type: string
+    description: The network to which the server should be connected
+    default: switch1-nat
+  server_py:
+    type: string
+    description: Name of the python server
+    default: https://raw.githubusercontent.com/houssemmh/INF8480-TP3/master/server.py
+
+resources:
+  server:
+    type: OS::Nova::Server
+    properties:
+      key_name: { get_param: key_name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - network: { get_param: network}
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            wget server_py
+            chmod u+x server.py
+            python2 server.py &
+          params:
+            server_py: { get_param: server_py }
+
+outputs:
+  server_networks:
+    description: The networks of the deployed server
+    value: { get_attr: [server, networks] }
