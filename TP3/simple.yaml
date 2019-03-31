@@ -48,9 +48,10 @@ resources:
             wget server_py
             chmod u+x server.py
             python2 server.py &
+		# Gérer l'installation de python s'il le faut
           params:
             server_py: { get_param: server_py }
-
+# Floatin ip à définir aussi
 outputs:
   server_networks:
     description: The networks of the deployed server

@@ -4,43 +4,88 @@ description: A template to deploy a load balanced web server
 
 parameters:
 
-  image:
+  key_name:
     type: string
-    description: Image utilisee pour les serveurs
-    #A completer
+    description: Name of an existing key pair to use for the server
+    constraints:
+      - custom_constraint: nova.keypair
 
   flavor:
     type: string
-    description: Flavor utilisee par les serveurs
-    #A completer
+    description: Flavor for the server to be created
+    default: 2048-10-1-1
+
+  image:
+    type: string
+    description: Image ID or image name to use for the server
+    default: xenial-server-cloudimg-amd64-disk1
 
   subnet_id:
     type: string
     description: Sous-reseau dans lequel le load balancer sera situe
-    #A completer
+    default: switch1-nat
 
-    # Vous pouvez ajouter d'autres paramètres
-    # Il faut bien définir les descriptions, les valeurs par default et les contraintes
+  server_py:
+    type: string
+    description: Name of the python server
+    default: https://raw.githubusercontent.com/houssemmh/INF8480-TP3/master/server.py
+
+  lb_port:
+    type: number
+    default: 80
+    description: Port used by the load balancer
 
 resources:
+
   server_nodes:
       type: OS::Heat::ResourceGroup
       properties:
-      #A completer
+        count: 3
+        resource_def:
+          server:
+            type: OS::Nova::Server
+            properties:
+              key_name: { get_param: key_name }
+              image: { get_param: image }
+              flavor: { get_param: flavor }
+              networks:
+                - network: { get_param: subnet_id }
+              user_data_format: RAW
+              user_data:
+                str_replace:
+                  template: |
+                    #!/bin/bash
+                    wget server_py
+                    chmod u+x server.py
+                    python2 server.py &
+                  params:
+                    server_py: { get_param: server_py }
 
 
   mypool:
       type: OS::Neutron::LBaaS::Pool
-      #A completer
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: { get_resource: listener }
+
+  listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: { get_resource: loadbalancer }
+      protocol: HTTP
+      protocol_port: { get_param: lb_port }
 
   myloadbalancer:
       type: OS::Neutron::LBaaS::LoadBalancer
-      #A completer
+      vip_subnet: { get_param: subnet_id }
 
   mymonitor:
       type: OS::Neutron::LBaaS::HealthMonitor
       properties:
-      #A completer
+        delay: 15
+        max_retries: 1 # si on fail la seconde fois alors on déclare la machine inactive
+        timeout: 5
+        type: HTTP
 
 
 outputs:
