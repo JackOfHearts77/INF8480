@@ -57,13 +57,15 @@ resources:
                     #!/bin/bash
                     wget server_py
                     chmod u+x server.py
-                    python2 server.py &
+                    #python2 server.py &
+                    echo "le fichier a ete download"
                   params:
                     server_py: { get_param: server_py }
 
 
   mypool:
-      type: OS::Neutron::LBaaS::Pool
+    type: OS::Neutron::LBaaS::Pool
+    properties:
       lb_algorithm: ROUND_ROBIN
       protocol: HTTP
       listener: { get_resource: listener }
@@ -71,12 +73,13 @@ resources:
   listener:
     type: OS::Neutron::LBaaS::Listener
     properties:
-      loadbalancer: { get_resource: loadbalancer }
+      loadbalancer: { get_resource: myloadbalancer }
       protocol: HTTP
       protocol_port: { get_param: lb_port }
 
   myloadbalancer:
-      type: OS::Neutron::LBaaS::LoadBalancer
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
       vip_subnet: { get_param: subnet_id }
 
   mymonitor:
