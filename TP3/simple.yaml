@@ -42,6 +42,7 @@ parameters:
     constraints:
       - {custom_constraint: neutron.network}
 
+
 resources:
   server:
     type: OS::Nova::Server
@@ -56,10 +57,12 @@ resources:
         str_replace:
           template: |
             #!/bin/bash
-            wget server_py
-            
+            sudo apt-get update
+            sudo apt install python --assume-yes
+            wget https://raw.githubusercontent.com/houssemmh/INF8480-TP3/master/server.py
+            python server.py &
           params:
-            server_py: { get_param: server_py }
+            param1: ''
 
   server_port:
     type: OS::Neutron::Port
@@ -70,6 +73,12 @@ resources:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network: { get_param: public_net }
+      port_id: { get_resource: server_port }
+
+  association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
       port_id: { get_resource: server_port }
       
 
